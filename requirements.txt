@@ -1,0 +1,8 @@
+torch
+transformers
+Pillow
+accelerate
+sentencepiece
+protobuf
+einops
+pyvips
