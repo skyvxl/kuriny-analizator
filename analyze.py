@@ -80,6 +80,19 @@ def stage1_vision(image_path: str, device: str) -> str:
     image = Image.open(image_path).convert("RGB")
     settings = {"max_tokens": 512}
 
+    # ── Шаг 0: Проверка — есть ли яйцо на фото? ──
+    print("🔍 Проверка: есть ли яйцо на изображении...")
+    egg_check = model.query(
+        image,
+        "Is there an egg or eggs visible in this image? Answer only YES or NO.",
+        settings={"max_tokens": 10},
+    )["answer"].strip().upper()
+
+    if not egg_check.startswith("YES"):
+        print("⚠️  Яйцо не обнаружено!")
+        unload_model(model, device)
+        return None  # сигнал что яйца нет
+
     # Несколько ракурсов анализа
     print("🔍 Описание общего состояния...")
     desc = model.query(
@@ -263,6 +276,24 @@ def main():
 
     # Этап 1: Vision
     vision_report = stage1_vision(args.image, device)
+
+    if vision_report is None:
+        elapsed = time.time() - start
+        no_egg = json.dumps({
+            "quality": "error",
+            "verdict_ru": "⚠️ ЯЙЦО НЕ ОБНАРУЖЕНО",
+            "confidence": "high",
+            "defects_found": [],
+            "reasoning": "На изображении не найдено яйцо для анализа. Подайте фото яйца.",
+        }, ensure_ascii=False, indent=2)
+        print("\n" + "=" * 60)
+        print("📝 ИТОГОВЫЙ ВЕРДИКТ:")
+        print("=" * 60)
+        print(no_egg)
+        print("─" * 60)
+        print(f"⏱️  Общее время: {elapsed:.1f} сек.")
+        print("=" * 60)
+        return
 
     # Этап 2: Reasoning
     final_json = stage2_reasoning(vision_report, device)
