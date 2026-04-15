@@ -1,30 +1,42 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
 @theme {
-	--color-surface: #0d1117;
-	--color-card: #161b22;
-	--color-elevated: #21262d;
-	--color-rim: #30363d;
-	--color-prose: #e6edf3;
-	--color-muted: #8b949e;
+    --color-surface: #0d1117;
+    --color-card: #161b22;
+    --color-elevated: #21262d;
+    --color-rim: #30363d;
+    --color-prose: #e6edf3;
+    --color-muted: #8b949e;
 
-	--animate-blink: blink 1.2s step-end infinite;
+    --animate-blink: blink 1.2s step-end infinite;
 }
 
 @keyframes blink {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
 }
 
 @layer base {
-	body {
-		background-color: var(--color-surface);
-		color: var(--color-prose);
-	}
+    body {
+        background-color: var(--color-surface);
+        color: var(--color-prose);
+    }
 
-	::-webkit-scrollbar { width: 6px; }
-	::-webkit-scrollbar-track { background: var(--color-card); }
-	::-webkit-scrollbar-thumb { background: var(--color-rim); border-radius: 3px; }
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--color-card);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-rim);
+        border-radius: 3px;
+    }
 }
