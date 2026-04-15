@@ -1,11 +1,19 @@
-# 🐔 Анализатор изображений — MVP
+# 🐔 Яйцегляд
 
 Прототип для проекта «Контроль качества продукции на птицефабрике при помощи компьютерного зрения».
 
 ## Быстрый старт
 
+### Запуск сервиса анализа изображений
 ```bash
+python -m venv .venv
 pip install -r requirements.txt
-python analyze.py --image egg.jpg
-python analyze.py --image egg.jpg --device mps     # Mac
-python analyze.py --image egg.jpg --device cpu     # без GPU
+python main.py
+```
+
+### Запуск Frontend
+```bash
+cd frontend
+bun install
+bun run dev
+```
