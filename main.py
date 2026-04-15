@@ -32,6 +32,7 @@ app.add_middleware(
 #  Вспомогательные функции
 # ─────────────────────────────────────────────
 
+
 def detect_device() -> str:
     import torch
 
@@ -56,12 +57,14 @@ def unload_model(model, device: str) -> None:
 #  Pipeline (запускается в отдельном потоке)
 # ─────────────────────────────────────────────
 
+
 def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
     """
     Двухэтапный pipeline анализа яйца.
     Прогресс отправляется в queue как dict-события.
     None в конце — sentinel (завершение стрима).
     """
+
     def emit(data: dict) -> None:
         queue.put(data)
 
@@ -75,7 +78,13 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
         # ══════════════════════════════════════
         #  ЭТАП 1: Vision (Moondream2)
         # ══════════════════════════════════════
-        emit({"type": "stage", "stage": 1, "message": "Загрузка vision-модели (Moondream2)..."})
+        emit(
+            {
+                "type": "stage",
+                "stage": 1,
+                "message": "Загрузка vision-модели (Moondream2)...",
+            }
+        )
 
         model = AutoModelForCausalLM.from_pretrained(
             "vikhyatk/moondream2",
@@ -89,25 +98,31 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
         settings = {"max_tokens": 512}
 
         emit({"type": "progress", "message": "Проверка наличия яйца на изображении..."})
-        egg_check = model.query(
-            image,
-            "Is there an egg or eggs visible in this image? Answer only YES or NO.",
-            settings={"max_tokens": 10},
-        )["answer"].strip().upper()
+        egg_check = (
+            model.query(
+                image,
+                "Is there an egg or eggs visible in this image? Answer only YES or NO.",
+                settings={"max_tokens": 10},
+            )["answer"]
+            .strip()
+            .upper()
+        )
 
         if not egg_check.startswith("YES"):
             unload_model(model, device)
-            emit({
-                "type": "result",
-                "data": {
-                    "quality": "error",
-                    "verdict_ru": "ЯЙЦО НЕ ОБНАРУЖЕНО",
-                    "confidence": "high",
-                    "defects_found": [],
-                    "reasoning": "На изображении не найдено яйцо для анализа. Подайте фото яйца.",
-                    "no_egg": True,
-                },
-            })
+            emit(
+                {
+                    "type": "result",
+                    "data": {
+                        "quality": "error",
+                        "verdict_ru": "ЯЙЦО НЕ ОБНАРУЖЕНО",
+                        "confidence": "high",
+                        "defects_found": [],
+                        "reasoning": "На изображении не найдено яйцо для анализа. Подайте фото яйца.",
+                        "no_egg": True,
+                    },
+                }
+            )
             return
 
         emit({"type": "progress", "message": "Анализ состояния скорлупы..."})
@@ -148,7 +163,13 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
         # ══════════════════════════════════════
         #  ЭТАП 2: Reasoning (Qwen2.5-1.5B)
         # ══════════════════════════════════════
-        emit({"type": "stage", "stage": 2, "message": "Загрузка text-модели (Qwen2.5-1.5B)..."})
+        emit(
+            {
+                "type": "stage",
+                "stage": 2,
+                "message": "Загрузка text-модели (Qwen2.5-1.5B)...",
+            }
+        )
 
         model_name = "Qwen/Qwen2.5-1.5B-Instruct"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -171,7 +192,7 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
             '"defects_found": ["short string defect 1", "short string defect 2"], '
             '"reasoning": "brief explanation of your decision"}\n\n'
             "IMPORTANT: defects_found must be a flat array of SHORT plain strings only. "
-            "No objects, no nested keys. Example: [\"crack on shell\", \"dirt stain\"]"
+            'No objects, no nested keys. Example: ["crack on shell", "dirt stain"]'
         )
 
         messages = [
@@ -202,7 +223,7 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
                 do_sample=True,
             )
 
-        generated = output_ids[:, inputs["input_ids"].shape[1]:]
+        generated = output_ids[:, inputs["input_ids"].shape[1] :]
         raw = tokenizer.batch_decode(generated, skip_special_tokens=True)[0].strip()
 
         emit({"type": "progress", "message": "Выгрузка text-модели из памяти..."})
@@ -221,16 +242,18 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
                 pass
 
         # Fallback при ошибке парсинга
-        emit({
-            "type": "result",
-            "data": {
-                "quality": "bad",
-                "verdict_ru": "БРАК",
-                "confidence": "low",
-                "defects_found": ["parse_error"],
-                "reasoning": f"Не удалось разобрать ответ модели: {raw[:300]}",
-            },
-        })
+        emit(
+            {
+                "type": "result",
+                "data": {
+                    "quality": "bad",
+                    "verdict_ru": "БРАК",
+                    "confidence": "low",
+                    "defects_found": ["parse_error"],
+                    "reasoning": f"Не удалось разобрать ответ модели: {raw[:300]}",
+                },
+            }
+        )
 
     except Exception as exc:
         emit({"type": "error", "message": str(exc)})
@@ -241,6 +264,7 @@ def run_pipeline(image_path: str, device: str, queue: Queue) -> None:
 # ─────────────────────────────────────────────
 #  HTTP Endpoints
 # ─────────────────────────────────────────────
+
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)) -> StreamingResponse:
@@ -298,4 +322,5 @@ async def health() -> dict:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
